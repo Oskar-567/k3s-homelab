@@ -1,0 +1,40 @@
+# InfluxDB v2 Helm Values
+# Sensitive values (password, token) are NOT stored here.
+# They are passed at install time via --set flags.
+
+image:
+  repository: influxdb
+  tag: 2.7-alpine   # Alpine image: smaller, better for Pi
+  pullPolicy: IfNotPresent
+
+adminUser:
+  organization: homelab
+  bucket: springboot
+  # password and token: set via --set at install time
+
+service:
+  type: NodePort
+  port: 8086
+  nodePort: 32086
+
+persistence:
+  enabled: true
+  storageClass: local-path   # k3s default provisioner
+  size: 2Gi
+
+resources:
+  limits:
+    cpu: 500m       # max 50% of one Pi core for InfluxDB
+    memory: 512Mi
+  requests:
+    cpu: 100m
+    memory: 256Mi
+
+ingress:
+  enabled: false   # no ingress, using NodePort
+
+# Give InfluxDB time to start on slow hardware (Pi) before probes fire
+livenessProbe:
+  initialDelaySeconds: 60
+readinessProbe:
+  initialDelaySeconds: 60

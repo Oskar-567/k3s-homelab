@@ -1,0 +1,31 @@
+---
+- name: Fetch k3s server token from server node
+  slurp:
+    src: /var/lib/rancher/k3s/server/node-token
+  register: k3s_token_raw
+  delegate_to: "{{ groups['k3s_server'][0] }}"
+
+- name: Decode token
+  set_fact:
+    k3s_token: "{{ k3s_token_raw['content'] | b64decode | trim }}"
+
+- name: Check if k3s agent is already installed
+  command: which k3s
+  register: k3s_installed
+  ignore_errors: yes
+  changed_when: false
+
+- name: Install k3s agent (only if not already present)
+  shell: >
+    curl -fL https://get.k3s.io |
+    INSTALL_K3S_VERSION="{{ k3s_version }}"
+    K3S_URL="https://{{ k3s_server_ip }}:6443"
+    K3S_TOKEN="{{ k3s_token }}"
+    sh -s - agent
+  when: k3s_installed.rc != 0
+
+- name: Wait for k3s agent service to be running
+  systemd:
+    name: k3s-agent
+    state: started
+    enabled: yes

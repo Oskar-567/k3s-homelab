@@ -1,0 +1,28 @@
+---
+- name: Update apt cache
+  apt:
+    update_cache: yes
+    cache_valid_time: 3600
+
+- name: Upgrade system packages
+  apt:
+    upgrade: dist
+
+- name: Check if cgroups are already enabled in cmdline.txt
+  command: grep -q "cgroup_enable=memory cgroup_memory=1" /boot/firmware/cmdline.txt
+  register: cgroups_check
+  ignore_errors: yes
+  changed_when: false
+
+- name: Enable cgroups in cmdline.txt (only if not already present)
+  replace:
+    path: /boot/firmware/cmdline.txt
+    regexp: '(\s*)$'
+    replace: ' cgroup_enable=memory cgroup_memory=1\1'
+  when: cgroups_check.rc != 0
+  register: cgroups_added
+
+- name: Reboot node if cgroups were newly added
+  reboot:
+    reboot_timeout: 120
+  when: cgroups_added.changed

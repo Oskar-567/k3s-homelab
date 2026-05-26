@@ -1,0 +1,31 @@
+---
+- name: Check if k3s is already installed
+  command: which k3s
+  register: k3s_installed
+  ignore_errors: yes
+  changed_when: false
+
+- name: Install k3s server (only if not already present)
+  shell: >
+    curl -fL https://get.k3s.io | INSTALL_K3S_VERSION="{{ k3s_version }}" sh -
+  when: k3s_installed.rc != 0
+
+- name: Wait for k3s service to be running
+  systemd:
+    name: k3s
+    state: started
+    enabled: yes
+
+- name: Check k3s status
+  command: k3s kubectl get nodes
+  register: k3s_nodes
+  changed_when: false
+
+- name: Print k3s node status
+  debug:
+    msg: "{{ k3s_nodes.stdout }}"
+
+- name: Make kubeconfig readable for local access
+  file:
+    path: /etc/rancher/k3s/k3s.yaml
+    mode: '0644'

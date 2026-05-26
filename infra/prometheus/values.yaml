@@ -1,0 +1,25 @@
+# Prometheus Helm Values
+# Optimized for Raspberry Pi 4B (2GB RAM)
+
+server:
+  retention: 2h   # low retention to reduce RAM usage on Pi startup
+
+  resources:
+    limits:
+      memory: 256Mi   # raised from 200Mi — OOMKills at startup even with 2h retention
+    requests:
+      memory: 128Mi
+
+  global:
+    scrape_interval: 5m       # scrape every 5 minutes — enough for a homelab
+    evaluation_interval: 5m
+
+  # Give Prometheus time to start on slow hardware (Pi) before probes fire
+  livenessProbeInitialDelay: 60
+  readinessProbeInitialDelay: 60
+
+alertmanager:
+  enabled: false   # not configured, no need to run it
+
+prometheus-pushgateway:
+  enabled: false   # only needed for batch jobs, not used here

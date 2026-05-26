@@ -1,0 +1,18 @@
+---
+- name: k3s Cluster Setup
+  hosts: all
+  become: true
+  roles:
+    - common
+
+- name: Set up k3s server
+  hosts: k3s_server
+  become: true
+  roles:
+    - k3s-server
+
+- name: Set up k3s agents
+  hosts: k3s_agent
+  become: true
+  roles:
+    - k3s-agent
