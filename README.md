@@ -10,15 +10,14 @@ Single-node Kubernetes cluster on a Raspberry Pi 4B. Goal: self-host my own apps
 | OS | Ubuntu Server 64-bit |
 | Kubernetes | k3s v1.35.4 |
 | Router | OpenWrt with AdGuard Home |
-| Pi IP | <PI-IP> |
 
 ## Running Services
 
-| Service    | Available at |
-|------------|---|
-| Grafana    | http://<PI-IP>:32000 |
+| Service    | Available at            |
+|------------|-------------------------|
+| Grafana    | http://< PI-IP >:32000  |
 | Prometheus | internal (cluster-only) |
-| InfluxDB   | http://<PI-IP>:32086  |
+| InfluxDB   | http://< PI-IP >:32086  |
 
 ## Structure
 
@@ -86,8 +85,6 @@ ansible-playbook -i inventory.ini playbook.yml --ask-pass --ask-become-pass
 | `common` | System updates, installs required packages, enables cgroups |
 | `k3s-server` | Installs and starts k3s as the server node |
 | `k3s-agent` | Sets up worker nodes (none configured yet) |
-
-> **Note:** `host_key_checking = False` is set in `ansible.cfg` — the SSH fingerprint of the Pi is not verified. Acceptable in a home network; disable in production environments.
 
 ## Quick Start (after Ansible setup)
 
