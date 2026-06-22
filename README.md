@@ -13,12 +13,13 @@ Single-node Kubernetes cluster on a Raspberry Pi 4B. Goal: self-host my own apps
 
 ## Running Services
 
-| Service    | Namespace   | Available at                    |
-|------------|-------------|---------------------------------|
-| InfluxDB   | database    | http://< PI-IP >:32086          |
-| PostgreSQL | database    | internal (cluster-only, :32432) |
-| Mosquitto  | apps        | mqtt://< PI-IP >:31883          |
-| Flux CD    | flux-system | internal (GitOps controller)    |
+| Service                      | Namespace   | Available at                    |
+|------------------------------|-------------|---------------------------------|
+| InfluxDB                     | database    | http://< PI-IP >:32086          |
+| PostgreSQL                   | database    | internal (cluster-only, :32432) |
+| Mosquitto                    | apps        | mqtt://< PI-IP >:31883          |
+| Plant Watering System Server | apps        | http://< PI-IP >:30080          |
+| Flux CD                      | flux-system | internal (GitOps controller)    |
 
 ## Not Currently Running (uninstalled to save RAM on 2GB Pi)
 
