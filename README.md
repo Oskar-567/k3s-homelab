@@ -39,7 +39,8 @@ k3s-homelab/
 │   ├── database/     # PostgreSQL, InfluxDB
 │   ├── monitoring/   # Grafana, Prometheus (not running, values saved)
 │   └── apps/         # Application services
-│       └── mosquitto/  # MQTT broker, namespace: apps
+│       ├── mosquitto/                    # MQTT broker, namespace: apps
+│       └── plant-watering-system-server/ # Spring Boot server, namespace: apps
 ├── flux/         # Flux CD resources (GitRepository, Customization)
 ├── docs/         # Documentation and setup guides
 │   └── setup.md  # Complete setup guide
