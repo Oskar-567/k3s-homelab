@@ -17,7 +17,7 @@ spec:
         - name: ghcr-pull-secret
       containers:
         - name: server
-          image: ghcr.io/oskar-567/plant-watering-system-server:sha-aa96d3f
+          image: ghcr.io/oskar-567/plant-watering-system-server:sha-7044605
           ports:
             - containerPort: 8080
           resources:
