@@ -9,7 +9,7 @@ image:
 
 adminUser:
   organization: homelab
-  bucket: springboot
+  bucket: plant-sensors
   # password and token: set via --set at install time
 
 service:

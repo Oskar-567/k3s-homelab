@@ -13,11 +13,19 @@ Single-node Kubernetes cluster on a Raspberry Pi 4B. Goal: self-host my own apps
 
 ## Running Services
 
-| Service    | Available at            |
-|------------|-------------------------|
-| Grafana    | http://< PI-IP >:32000  |
-| Prometheus | internal (cluster-only) |
-| InfluxDB   | http://< PI-IP >:32086  |
+| Service    | Namespace   | Available at                    |
+|------------|-------------|---------------------------------|
+| InfluxDB   | database    | http://< PI-IP >:32086          |
+| PostgreSQL | database    | internal (cluster-only, :32432) |
+| Mosquitto  | apps        | mqtt://< PI-IP >:31883          |
+| Flux CD    | flux-system | internal (GitOps controller)    |
+
+## Not Currently Running (uninstalled to save RAM on 2GB Pi)
+
+| Service    | Namespace  | Manifest                              |
+|------------|------------|---------------------------------------|
+| Grafana    | monitoring | `infra/monitoring/grafana/values.yaml` |
+| Prometheus | monitoring | `infra/monitoring/prometheus/values.yaml` |
 
 ## Structure
 
@@ -27,7 +35,10 @@ k3s-homelab/
 │   ├── inventory.ini
 │   ├── playbook.yml
 │   └── roles/    # common, k3s-server, k3s-agent
-├── infra/        # Kubernetes manifests for infrastructure components
+├── infra/        # Kubernetes manifests for all services
+│   ├── database/     # PostgreSQL, InfluxDB
+│   ├── monitoring/   # Grafana, Prometheus
+│   └── apps/         # Application services (Mosquitto, Spring Boot, ...)
 ├── docs/         # Documentation and setup guides
 │   └── setup.md  # Complete setup guide
 └── README.md
