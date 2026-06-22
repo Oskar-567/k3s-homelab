@@ -1,0 +1,77 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: plant-watering-server
+  namespace: apps
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: plant-watering-server
+  template:
+    metadata:
+      labels:
+        app: plant-watering-server
+    spec:
+      imagePullSecrets:
+        - name: ghcr-pull-secret
+      containers:
+        - name: server
+          image: ghcr.io/oskar-567/plant-watering-system-server:sha-0000000
+          ports:
+            - containerPort: 8080
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          env:
+            - name: DB_HOST
+              value: "postgres.database.svc.cluster.local"
+            - name: DB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: server-secret
+                  key: DB_USERNAME
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: server-secret
+                  key: DB_PASSWORD
+            - name: INFLUX_URL
+              value: "http://influxdb.database.svc.cluster.local:8086"
+            - name: INFLUX_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: server-secret
+                  key: INFLUX_TOKEN
+            - name: INFLUX_ORG
+              value: "homelab"
+            - name: INFLUX_BUCKET
+              value: "plant-sensors"
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: server-secret
+                  key: JWT_SECRET
+            - name: APP_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: server-secret
+                  key: APP_PASSWORD
+            - name: MQTT_BROKER
+              value: "mosquitto"
+            - name: MQTT_PORT
+              value: "1883"
+            - name: MQTT_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: server-secret
+                  key: MQTT_USERNAME
+            - name: MQTT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: server-secret
+                  key: MQTT_PASSWORD
