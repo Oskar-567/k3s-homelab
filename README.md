@@ -37,8 +37,10 @@ k3s-homelab/
 │   └── roles/    # common, k3s-server, k3s-agent
 ├── infra/        # Kubernetes manifests for all services
 │   ├── database/     # PostgreSQL, InfluxDB
-│   ├── monitoring/   # Grafana, Prometheus
-│   └── apps/         # Application services (Mosquitto, Spring Boot, ...)
+│   ├── monitoring/   # Grafana, Prometheus (not running, values saved)
+│   └── apps/         # Application services
+│       └── mosquitto/  # MQTT broker, namespace: apps
+├── flux/         # Flux CD resources (GitRepository, Customization)
 ├── docs/         # Documentation and setup guides
 │   └── setup.md  # Complete setup guide
 └── README.md
