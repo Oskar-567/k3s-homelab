@@ -43,7 +43,7 @@ spec:
                   name: server-secret
                   key: DB_PASSWORD
             - name: INFLUX_URL
-              value: "http://influxdb.database.svc.cluster.local:8086"
+              value: "http://influxdb-influxdb2.database.svc.cluster.local:8086"
             - name: INFLUX_TOKEN
               valueFrom:
                 secretKeyRef:

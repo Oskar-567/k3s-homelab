@@ -33,8 +33,13 @@ resources:
 ingress:
   enabled: false   # no ingress, using NodePort
 
-# Give InfluxDB time to start on slow hardware (Pi) before probes fire
+# Give InfluxDB time to start on slow hardware (Pi) before probes fire.
+# Higher timeoutSeconds and failureThreshold prevent false-positive kills during system load spikes.
 livenessProbe:
   initialDelaySeconds: 60
+  timeoutSeconds: 10
+  failureThreshold: 5
 readinessProbe:
   initialDelaySeconds: 60
+  timeoutSeconds: 10
+  failureThreshold: 5
