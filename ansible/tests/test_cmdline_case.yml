@@ -1,0 +1,32 @@
+---
+- name: "{{ case.name }} | write input file"
+  ansible.builtin.copy:
+    dest: "/tmp/cmdline-{{ case.name }}.txt"
+    content: "{{ case.input }}"
+    mode: "0644"
+
+- name: "{{ case.name }} | first run"
+  ansible.builtin.include_tasks: ../roles/common/tasks/cmdline.yml
+  vars:
+    cmdline_path: "/tmp/cmdline-{{ case.name }}.txt"
+
+- name: "{{ case.name }} | read result"
+  ansible.builtin.slurp:
+    src: "/tmp/cmdline-{{ case.name }}.txt"
+  register: cmdline_result
+
+- name: "{{ case.name }} | content is a single correct line"
+  ansible.builtin.assert:
+    that:
+      - (cmdline_result.content | b64decode) == case.expected
+    fail_msg: "got {{ cmdline_result.content | b64decode | to_json }}, expected {{ case.expected | to_json }}"
+
+- name: "{{ case.name }} | second run"
+  ansible.builtin.include_tasks: ../roles/common/tasks/cmdline.yml
+  vars:
+    cmdline_path: "/tmp/cmdline-{{ case.name }}.txt"
+
+- name: "{{ case.name }} | second run is idempotent"
+  ansible.builtin.assert:
+    that:
+      - cmdline_update is not changed

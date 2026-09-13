@@ -1,9 +1,10 @@
 ---
-- name: k3s Cluster Setup
+- name: Base system
   hosts: all
   become: true
   roles:
     - common
+    - os-tuning
 
 - name: Set up k3s server
   hosts: k3s_server

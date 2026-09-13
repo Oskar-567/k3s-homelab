@@ -1,0 +1,16 @@
+---
+# cmdline.txt must stay a single line: the firmware only reads the first line.
+- name: Read kernel command line file
+  ansible.builtin.slurp:
+    src: "{{ cmdline_path }}"
+  register: cmdline_raw
+
+- name: Parse the first line of the kernel command line
+  ansible.builtin.set_fact:
+    cmdline_first_line: "{{ ((cmdline_raw.content | b64decode).splitlines() + ['']) | first | trim }}"
+
+- name: Write kernel command line with required parameters as a single line
+  ansible.builtin.copy:
+    dest: "{{ cmdline_path }}"
+    content: "{{ ([cmdline_first_line] + (cmdline_required_params | reject('in', cmdline_first_line.split()) | list)) | join(' ') | trim }}\n"
+  register: cmdline_update

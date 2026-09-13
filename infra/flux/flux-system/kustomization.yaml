@@ -1,0 +1,14 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - gotk-components.yaml
+patches:
+  # Single-node cluster: disable leader election to avoid lease writes on the SD card.
+  # The later flag wins over the generated --enable-leader-election.
+  - target:
+      kind: Deployment
+      name: "(source-controller|kustomize-controller)"
+    patch: |
+      - op: add
+        path: /spec/template/spec/containers/0/args/-
+        value: --enable-leader-election=false

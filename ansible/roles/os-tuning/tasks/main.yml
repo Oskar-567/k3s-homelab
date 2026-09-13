@@ -1,0 +1,81 @@
+---
+# Goal: fewer writes to the SD card and fewer idle processes.
+
+- name: Create journald drop-in directory
+  ansible.builtin.file:
+    path: /etc/systemd/journald.conf.d
+    state: directory
+    mode: "0755"
+
+- name: Keep the systemd journal in RAM only
+  ansible.builtin.copy:
+    dest: /etc/systemd/journald.conf.d/90-volatile.conf
+    content: |
+      # Managed by Ansible (os-tuning): logs stay in RAM to spare the SD card
+      [Journal]
+      Storage=volatile
+      RuntimeMaxUse=50M
+    mode: "0644"
+  notify: Restart journald
+
+- name: Mount the root filesystem with noatime
+  ansible.builtin.replace:
+    path: /etc/fstab
+    regexp: '^(\S+\s+/\s+ext4\s+)(?!\S*noatime)(\S+)(\s+.*)$'
+    replace: '\1\2,noatime\3'
+  register: fstab_noatime
+
+- name: Install rpi-swap (manages zram swap; replaces dphys-swapfile)
+  ansible.builtin.apt:
+    name: rpi-swap
+    state: present
+
+- name: Create rpi-swap drop-in directory
+  ansible.builtin.file:
+    path: /etc/rpi/swap.conf.d
+    state: directory
+    mode: "0755"
+
+- name: Use compressed swap in RAM only (no swap file on the SD card)
+  ansible.builtin.copy:
+    dest: /etc/rpi/swap.conf.d/90-zram-only.conf
+    content: |
+      # Managed by Ansible (os-tuning): see swap.conf(5)
+      [Main]
+      Mechanism=zram
+    mode: "0644"
+  register: swap_config
+
+# The default config.txt ends with an [all] section, so appending applies to all boards.
+- name: Disable unused Bluetooth and Wi-Fi radios
+  ansible.builtin.lineinfile:
+    path: /boot/firmware/config.txt
+    line: "{{ item }}"
+    insertafter: EOF
+  loop:
+    - dtoverlay=disable-bt
+    - dtoverlay=disable-wifi
+  register: radios_config
+
+- name: Check which unused units exist
+  ansible.builtin.command: systemctl list-unit-files --no-legend {{ item }}
+  loop: "{{ os_tuning_disabled_units }}"
+  register: os_tuning_unit_check
+  changed_when: false
+  failed_when: false
+
+- name: Disable, stop and mask unused units that exist
+  ansible.builtin.systemd_service:
+    name: "{{ item.item }}"
+    state: stopped
+    enabled: false
+    masked: true
+  loop: "{{ os_tuning_unit_check.results }}"
+  loop_control:
+    label: "{{ item.item }}"
+  when: item.stdout | trim | length > 0
+
+- name: Reboot to apply fstab, swap and firmware changes
+  ansible.builtin.reboot:
+    reboot_timeout: 300
+  when: fstab_noatime is changed or swap_config is changed or radios_config is changed

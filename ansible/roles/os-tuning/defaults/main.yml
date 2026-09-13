@@ -1,0 +1,11 @@
+---
+# Disabled, stopped and masked only if the unit exists on the host.
+# Socket units are listed too, otherwise socket activation keeps them listening.
+os_tuning_disabled_units:
+  - bluetooth.service
+  - hciuart.service
+  - avahi-daemon.socket
+  - avahi-daemon.service
+  - ModemManager.service
+  - triggerhappy.socket
+  - triggerhappy.service

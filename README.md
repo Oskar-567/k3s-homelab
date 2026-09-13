@@ -19,7 +19,7 @@
 | | |
 |---|---|
 | **Board** | Raspberry Pi 4B (2 GB RAM) |
-| **OS** | Ubuntu Server 64-bit |
+| **OS** | Raspberry Pi OS Lite 64-bit (Trixie) |
 | **Kubernetes** | k3s v1.35.4 (single node) |
 | **Network** | OpenWrt router with AdGuard Home |
 | **Delivery** | GitHub Actions → GHCR → Flux CD |
@@ -100,56 +100,64 @@ The playbook prepares the Pi and installs k3s in one run.
 
 | Role | What it does |
 |---|---|
-| `common` | Updates and upgrades system packages, enables memory cgroups, reboots if needed |
-| `k3s-server` | Installs k3s (pinned version) and makes the kubeconfig readable |
+| `common` | Updates system packages, sets memory cgroup kernel parameters (single-line `cmdline.txt`), reboots if needed |
+| `os-tuning` | Journal in RAM, `noatime`, zram-only swap, Bluetooth/Wi-Fi off, unused services masked — fewer SD card writes |
+| `k3s-server` | Writes a trimmed `/etc/rancher/k3s/config.yaml` (no Traefik/servicelb, no leader election) and installs k3s (pinned version) |
 | `k3s-agent` | Joins worker nodes (none configured yet) |
 
 <details>
 <summary><b>1. Prerequisites</b></summary>
 
-- Ansible on your local machine (`pip install ansible`)
-- Pi reachable on the network with SSH enabled
-- SSH key auth recommended (otherwise you're asked for a password on every run):
+- Raspberry Pi OS Lite (64-bit) flashed with Raspberry Pi Imager: hostname, user and **SSH public key** set in the Imager
+- WSL (Ubuntu) on Windows — Ansible does not run natively on Windows
+- Ansible in a WSL virtualenv (no sudo needed):
 
 ```bash
-ssh-copy-id <your-user>@<PI-IP>
+python3 -m venv --without-pip ~/.venvs/ansible
+curl -sSL https://bootstrap.pypa.io/get-pip.py | ~/.venvs/ansible/bin/python
+~/.venvs/ansible/bin/pip install ansible-core
 ```
+
+- Your SSH private key in WSL `~/.ssh/` with `chmod 600` (keys under `/mnt/c` are rejected as too open)
 
 </details>
 
 <details>
 <summary><b>2. Configure the inventory</b></summary>
 
-Edit `ansible/inventory.ini`:
+Copy the template and fill in real values — `inventory.local.ini` is gitignored:
+
+```bash
+cp ansible/inventory.ini ansible/inventory.local.ini
+```
 
 ```ini
 [k3s_server]
 raspberry4b ansible_host=<PI-IP> ansible_user=<your-user>
-```
 
-| Key | Meaning |
-|---|---|
-| `ansible_host` | IP address of the Pi |
-| `ansible_user` | Username on the Pi (e.g. `ubuntu` on a fresh Ubuntu Server image) |
+[all:vars]
+k3s_server_ip=<PI-IP>
+```
 
 </details>
 
 <details>
 <summary><b>3. Run the playbook</b></summary>
 
+From WSL (after re-flashing, remove the old host key first: `ssh-keygen -R <PI-IP>`):
+
 ```bash
-cd ansible
-
-# With SSH key (recommended)
-ansible-playbook -i inventory.ini playbook.yml --ask-become-pass
-
-# With password auth
-ansible-playbook -i inventory.ini playbook.yml --ask-pass --ask-become-pass
+cd /mnt/c/Users/<you>/Desktop/Projects/k3s-homelab/ansible
+# Note: ansible.cfg is ignored under /mnt/c (world-writable dir) - not needed, roles are found next to the playbook
+~/.venvs/ansible/bin/ansible-playbook -i inventory.local.ini playbook.yml
 ```
 
-| Flag | Why |
-|---|---|
-| `--ask-become-pass` | sudo password on the Pi (the playbook uses `become: true`) |
-| `--ask-pass` | SSH password — only needed without an SSH key |
+Raspberry Pi OS gives the Imager-created user passwordless sudo. Add `--ask-become-pass` only if sudo asks for a password.
+
+Local test of the `cmdline.txt` logic (no Pi needed):
+
+```bash
+~/.venvs/ansible/bin/ansible-playbook -i localhost, -c local tests/test_cmdline.yml
+```
 
 </details>

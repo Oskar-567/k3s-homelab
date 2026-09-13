@@ -4,8 +4,8 @@ This guide walks through the complete setup of the Raspberry Pi, k3s, and the mo
 
 ## Prerequisites
 
-- Raspberry Pi 4B (Ubuntu Server 64-bit)
-- MicroSD card (min. 16GB, Class 10 recommended)
+- Raspberry Pi 4B (Raspberry Pi OS Lite 64-bit)
+- MicroSD card (min. 16GB; A2 / "Endurance" cards cope best with k3s' small synced writes)
 - Router with OpenWrt
 - `kubectl` and `helm` installed on the local machine
 
@@ -14,9 +14,9 @@ This guide walks through the complete setup of the Raspberry Pi, k3s, and the mo
 ## 1. Flash Raspberry Pi OS
 
 1. Open Raspberry Pi Imager
-2. **Choose OS:** Ubuntu Server (64-bit) — no desktop, no unnecessary overhead
+2. **Choose OS:** Raspberry Pi OS (other) → **Raspberry Pi OS Lite (64-bit)** — no desktop
 3. **Choose SD card**
-4. Enable SSH and create a user
+4. **Edit settings:** hostname, username + password, time zone; **Services → SSH → public-key authentication only** with your `id_ed25519.pub`; no Wi-Fi if the Pi uses Ethernet
 5. Start flashing
 
 ---
@@ -44,43 +44,9 @@ Assign a fixed IP to the Pi's MAC address
 
 ---
 
-## 4. Prepare the System
+## 4. Prepare the System and Install k3s (Ansible)
 
-On the Pi:
-
-```bash
-sudo apt update && sudo apt upgrade -y
-```
-
-Enable cgroups for k3s:
-```bash
-sudo sed -i '$ s/$/ cgroup_enable=memory cgroup_memory=1/' /boot/firmware/cmdline.txt
-```
-
-Verify:
-```bash
-cat /boot/firmware/cmdline.txt
-# Must contain at the end: cgroup_enable=memory cgroup_memory=1
-```
-
-Reboot — required, otherwise k3s won't start:
-```bash
-sudo reboot
-```
-
----
-
-## 5. Install k3s
-
-```bash
-curl -fL https://get.k3s.io | sudo sh -
-```
-
-Verify installation:
-```bash
-sudo systemctl status k3s
-sudo k3s kubectl get nodes
-```
+System preparation (updates, cgroup kernel parameters, SD-card write reduction) and the k3s installation are automated — see [section 15](#15-run-ansible-playbook-automated-cluster-setup). Do not install k3s by hand: the playbook writes `/etc/rancher/k3s/config.yaml` **before** installing, and k3s only reads parts of it on first start.
 
 ---
 
@@ -256,38 +222,24 @@ cat /boot/firmware/cmdline.txt
 
 ## 15. Run Ansible Playbook (automated cluster setup)
 
-The Ansible playbook automates steps 2–6 of this guide. Prerequisites: Pi is flashed, SSH is reachable, static IP is set.
+The playbook runs the roles `common` → `os-tuning` → `k3s-server` (→ `k3s-agent` for workers). Prerequisites: Pi flashed (section 1), reachable via SSH with your key, DHCP reservation set (section 3).
 
-**Install Ansible (WSL or Ubuntu laptop):**
+Ansible does not run natively on Windows — use WSL. Installation (no sudo needed), inventory setup and the run command are described in the root [README](../README.md#-provisioning-with-ansible).
+
+**Syntax check:**
 ```bash
-sudo apt update
-sudo apt install ansible -y
-ansible --version
+~/.venvs/ansible/bin/ansible-playbook -i inventory.local.ini playbook.yml --syntax-check
 ```
 
-**Copy SSH key to Pi (one-time):**
+**Verify after the run (on the Pi):**
 ```bash
-ssh-copy-id <your-user>@<PI-IP>
-```
-After this, no password prompt on SSH login.
-
-**Run playbook:**
-```bash
-ansible-playbook -i ansible/inventory.ini ansible/playbook.yml --ask-become-pass
-```
-`--ask-become-pass` asks once for the Pi user's sudo password.
-
-**Syntax check (without executing):**
-```bash
-ansible-playbook -i ansible/inventory.ini ansible/playbook.yml --syntax-check
-```
-
-**Dry run (shows what would happen without making changes):**
-```bash
-ansible-playbook -i ansible/inventory.ini ansible/playbook.yml --check --ask-become-pass
+swapon --show                      # only /dev/zram0
+findmnt -no OPTIONS /              # contains noatime
+cat /etc/rancher/k3s/config.yaml   # trimmed k3s config
+sudo k3s kubectl get nodes         # Ready
 ```
 
 **Add a worker node:**
-1. Add a line under `[k3s_agent]` in `ansible/inventory.ini`
-2. Run the playbook again — the `common` and `k3s-agent` roles run on the new node
+1. Add a line under `[k3s_agent]` in `ansible/inventory.local.ini`
+2. Run the playbook again — `common`, `os-tuning` and `k3s-agent` run on the new node
 3. Verify: `kubectl get nodes`

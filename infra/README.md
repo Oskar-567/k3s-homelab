@@ -14,7 +14,8 @@ Not every manifest is applied the same way. This matters: **never `kubectl apply
 | 🌱 Plant Watering Server | [`apps/plant-watering-system-server/`](apps/plant-watering-system-server/) | **Flux** (auto-deployed from Git) | `apps` | NodePort `30080` |
 | 📡 Mosquitto | [`apps/mosquitto/mosquitto.yaml`](apps/mosquitto/mosquitto.yaml) | `kubectl apply` | `apps` | NodePort `31883` |
 | 🐘 PostgreSQL 16 | [`database/postgres/postgres.yaml`](database/postgres/postgres.yaml) | `kubectl apply` | `database` | NodePort `32432` |
-| 🔄 Flux source + sync | [`flux/`](flux/) | `kubectl apply` once, then Flux | `flux-system` | — |
+| 🔄 Flux controllers | [`flux/flux-system/`](flux/flux-system/) | `kubectl apply -k` once (Flux v2.8.8, source + kustomize only, no leader election) | `flux-system` | — |
+| 🔄 Flux source + sync | [`flux/k3s-homelab-source.yaml`](flux/k3s-homelab-source.yaml), [`flux/plant-watering-server-kustomization.yaml`](flux/plant-watering-server-kustomization.yaml) | `kubectl apply` once, then Flux | `flux-system` | — |
 | 📊 Grafana *(not running)* | [`monitoring/grafana/values.yaml`](monitoring/grafana/values.yaml) | Helm | `monitoring` | — |
 | 📈 Prometheus *(not running)* | [`monitoring/prometheus/values.yaml`](monitoring/prometheus/values.yaml) | Helm | `monitoring` | — |
 
@@ -83,13 +84,23 @@ kubectl get pods -n database   # wait until Running
 kubectl get pods -n apps
 ```
 
+### 3b. Restore the database (when migrating)
+
+Restore **before** Flux deploys the server — otherwise Flyway creates an empty schema and MQTT writes race the restore.
+
+```bash
+P=$(kubectl get pod -n database -l app=postgres -o jsonpath='{.items[0].metadata.name}')
+MSYS_NO_PATHCONV=1 kubectl cp plantdb.dump database/$P:/tmp/plantdb.dump
+MSYS_NO_PATHCONV=1 kubectl exec -n database $P -- pg_restore -U plant -d plantdb --clean --if-exists --no-owner --exit-on-error /tmp/plantdb.dump
+```
+
 ### 4. Flux → server deploys itself
 
-Requires the [Flux CLI](https://fluxcd.io/flux/installation/).
-
 ```powershell
-flux install                                          # installs the Flux controllers
-kubectl apply -f infra/flux/k3s-homelab-source.yaml   # tells Flux which repo to watch
+kubectl apply -k infra/flux/flux-system                 # Flux controllers (pinned version, trimmed)
+kubectl -n flux-system rollout status deployment/source-controller
+kubectl -n flux-system rollout status deployment/kustomize-controller
+kubectl apply -f infra/flux/k3s-homelab-source.yaml     # tells Flux which repo to watch
 kubectl apply -f infra/flux/plant-watering-server-kustomization.yaml
 ```
 
@@ -101,7 +112,7 @@ kubectl rollout status deployment/plant-watering-server -n apps
 ```
 
 > [!NOTE]
-> The server takes ~3 minutes to start on the Pi. Flyway creates the database schema on first start.
+> The server needs roughly 30–90 seconds until its readiness probe turns green. On a fresh database Flyway creates the schema on first start; after a restore (step 3b) Flyway only reports `Schema "public" is up to date`.
 
 <details>
 <summary><b>📊 Optional: monitoring stack (Helm)</b></summary>
@@ -120,6 +131,18 @@ helm upgrade --install prometheus prometheus-community/prometheus -n monitoring 
 </details>
 
 ---
+
+## 💾 Manual Database Backup
+
+Run from Git Bash; store the file outside the repo.
+
+```bash
+P=$(kubectl get pod -n database -l app=postgres -o jsonpath='{.items[0].metadata.name}')
+MSYS_NO_PATHCONV=1 kubectl exec -n database $P -- pg_dump -U plant -Fc -f /tmp/plantdb.dump plantdb
+MSYS_NO_PATHCONV=1 kubectl cp database/$P:/tmp/plantdb.dump plantdb-$(date +%F).dump
+```
+
+Secrets are not in Git — keep their values in a password manager.
 
 ## ➕ Adding Another App via Flux
 

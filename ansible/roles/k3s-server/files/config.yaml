@@ -1,0 +1,23 @@
+# Managed by Ansible (k3s-server). Single-node homelab tuned for a 2 GB Raspberry Pi on an SD card.
+write-kubeconfig-mode: "0644"
+
+# NodePort only (LAN/VPN) - no ingress or service load balancer needed
+disable:
+  - traefik
+  - servicelb
+disable-helm-controller: true
+disable-network-policy: true
+disable-cloud-controller: true
+
+# Single node: leader election only adds lease writes to the datastore
+kube-controller-manager-arg:
+  - "leader-elect=false"
+kube-scheduler-arg:
+  - "leader-elect=false"
+
+kubelet-arg:
+  - "system-reserved=memory=150Mi"
+  - "kube-reserved=memory=450Mi"
+  - "eviction-hard=memory.available<100Mi"
+  - "container-log-max-size=5Mi"
+  - "container-log-max-files=2"

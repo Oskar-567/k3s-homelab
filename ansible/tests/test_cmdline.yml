@@ -1,0 +1,29 @@
+---
+# Local test for roles/common/tasks/cmdline.yml (no Raspberry Pi needed).
+# Run from ansible/: ansible-playbook -i localhost, -c local tests/test_cmdline.yml
+- name: Test kernel command line handling
+  hosts: localhost
+  gather_facts: false
+  vars:
+    cmdline_required_params:
+      - cgroup_memory=1
+      - cgroup_enable=memory
+    cases:
+      - name: trailing-newline
+        input: "console=serial0,115200 root=PARTUUID=abcd-02 rootwait\n"
+        expected: "console=serial0,115200 root=PARTUUID=abcd-02 rootwait cgroup_memory=1 cgroup_enable=memory\n"
+      - name: no-trailing-newline
+        input: "console=serial0,115200 root=PARTUUID=abcd-02 rootwait"
+        expected: "console=serial0,115200 root=PARTUUID=abcd-02 rootwait cgroup_memory=1 cgroup_enable=memory\n"
+      - name: already-present
+        input: "console=serial0,115200 rootwait cgroup_enable=memory cgroup_memory=1\n"
+        expected: "console=serial0,115200 rootwait cgroup_enable=memory cgroup_memory=1\n"
+      - name: one-missing
+        input: "console=serial0,115200 rootwait cgroup_memory=1\n"
+        expected: "console=serial0,115200 rootwait cgroup_memory=1 cgroup_enable=memory\n"
+  tasks:
+    - name: Run test cases
+      ansible.builtin.include_tasks: test_cmdline_case.yml
+      loop: "{{ cases }}"
+      loop_control:
+        loop_var: case
