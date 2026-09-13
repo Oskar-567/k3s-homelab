@@ -42,17 +42,6 @@ spec:
                 secretKeyRef:
                   name: server-secret
                   key: DB_PASSWORD
-            - name: INFLUX_URL
-              value: "http://influxdb-influxdb2.database.svc.cluster.local:8086"
-            - name: INFLUX_TOKEN
-              valueFrom:
-                secretKeyRef:
-                  name: server-secret
-                  key: INFLUX_TOKEN
-            - name: INFLUX_ORG
-              value: "homelab"
-            - name: INFLUX_BUCKET
-              value: "plant-sensors"
             - name: JWT_SECRET
               valueFrom:
                 secretKeyRef:
