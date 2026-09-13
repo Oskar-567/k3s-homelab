@@ -27,8 +27,12 @@ spec:
               cpu: 100m
               memory: 256Mi
             limits:
-              cpu: 500m
-              memory: 512Mi
+              memory: 384Mi
+          readinessProbe:
+            tcpSocket:
+              port: 8080
+            periodSeconds: 10
+            failureThreshold: 30
           env:
             - name: DB_HOST
               value: "postgres.database.svc.cluster.local"
