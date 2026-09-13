@@ -149,10 +149,13 @@ From WSL (after re-flashing, remove the old host key first: `ssh-keygen -R <PI-I
 ```bash
 cd /mnt/c/Users/<you>/Desktop/Projects/k3s-homelab/ansible
 # Note: ansible.cfg is ignored under /mnt/c (world-writable dir) - not needed, roles are found next to the playbook
-~/.venvs/ansible/bin/ansible-playbook -i inventory.local.ini playbook.yml
+~/.venvs/ansible/bin/ansible-playbook -i inventory.local.ini playbook.yml -K
 ```
 
-Raspberry Pi OS gives the Imager-created user passwordless sudo. Add `--ask-become-pass` only if sudo asks for a password.
+- `-K` (`--ask-become-pass`) asks for the Pi user's sudo password — the Imager-created user needs it on Raspberry Pi OS Trixie.
+- The playbook reboots the Pi up to twice and waits for it; the first run takes 15–25 min (package upgrade).
+- If your WSL SSH key differs from the key you put into the Imager, copy that key into WSL under its own name (e.g. `~/.ssh/id_ed25519_pi`, `chmod 600`) and set `ansible_ssh_private_key_file` in `inventory.local.ini`.
+- The inventory's SSH keepalive (`ansible_ssh_common_args`) makes a connection that silently dies during the package upgrade fail after ~2 minutes instead of hanging; just re-run the playbook.
 
 Local test of the `cmdline.txt` logic (no Pi needed):
 

@@ -233,10 +233,10 @@ Ansible does not run natively on Windows — use WSL. Installation (no sudo need
 
 **Verify after the run (on the Pi):**
 ```bash
-swapon --show                      # only /dev/zram0
+/usr/sbin/swapon --show            # only /dev/zram0
 findmnt -no OPTIONS /              # contains noatime
 cat /etc/rancher/k3s/config.yaml   # trimmed k3s config
-sudo k3s kubectl get nodes         # Ready
+k3s kubectl get nodes              # Ready (kubeconfig is world-readable via write-kubeconfig-mode)
 ```
 
 **Add a worker node:**
